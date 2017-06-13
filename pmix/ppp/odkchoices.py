@@ -4,16 +4,13 @@ from pmix.ppp.definitions.error import InvalidLanguageException
 
 class OdkChoices:
     """A class to represent a choice list defined in an XLSForm.
-
     Attributes:
         list_name (str): The name of the choice list.
         data (list): A list of choice options for the choice list.
-
     """
 
     def __init__(self, list_name):
         """Initialize a choice list.
-
         Args:
             list_name (str): The name of the choice list.
         """
@@ -31,7 +28,6 @@ class OdkChoices:
 
     def add(self, choice):
         """Add a choice to this choice list.
-
         Args:
             choice (dict): A single choice row.
         """
@@ -39,13 +35,10 @@ class OdkChoices:
 
     def labels(self, lang):
         """Get the labels for this choice list in the desired language.
-
         Args:
             lang (str): The language in which to return the choice labels.
-
         Returns:
             list: Correctly ordered list of choice labels.
-
         Raises:
             InvalidLanguageException
         """
@@ -60,10 +53,8 @@ class OdkChoices:
 
     def name_labels(self, lang):
         """Get choice name labels.
-
         Args:
             lang (str): The language of choice list.
-
         Returns:
             list: Choice variable names and associated labels for choice list.
         """
@@ -73,10 +64,8 @@ class OdkChoices:
 
     def choice_langs(self):
         """Discover all languages for these choices.
-
         Returns:
             list: Alphabetized list of languages.
-
         Raises:
             InvalidLanguageException: If languages of first row differ from
                 languages in any other row.
