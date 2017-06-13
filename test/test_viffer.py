@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Unit tests for Viffer (Variable diff(erentiator)) package."""
-from os import path as os_path, listdir
 import unittest
-import re
-# from pmix.workbook import Workbook
-from pmix.xlsform import Xlsform
-from pmix.viffer.__main__ import render_form_objects
-from pmix.viffer.error import VifferError
 
+import re
+from os import path as os_path, listdir
+
+# from pmix.workbook import Workbook
+from pmix.viffer.__main__ import to_csv
 
 TEST_FORMS_DIRECTORY = os_path.dirname(os_path.realpath(__file__))
 
@@ -26,7 +25,6 @@ class VifferTest:
     @staticmethod
     def get_test_forms():
         """Gets a list of all teset forms in test directory.
-
         Returns:
             list: Test forms.
         """
@@ -47,10 +45,8 @@ class VifferTest:
     @staticmethod
     def get_test_ref_forms(test_forms):
         """Gets a list of all forms in test directory matching ref pattern.
-
         Args:
             test_forms (list): A list of test forms.
-
         Returns:
             list: Reference template test forms.
         """
@@ -67,28 +63,24 @@ class VifferMainTest(unittest.TestCase, VifferTest):
         super(VifferMainTest, self).__init__(*args, **kwargs)
         VifferTest.__init__(self)
 
-    def test_render_form_objects(self):
-        """Unit tests for the viffer.__main__.run()."""
 
-        def test_render_form_objects_args_xlsxfiles_error_raised():
-            """Error is raised when incorrect number of files is passed."""
-            cases = [
-                ['Viffer-FQ-v1.xlsx'],
-                ['Viffer-FQ-v1.xlsx', 'Viffer-FQ-v3.xlsx', 'Viffer-FQ-v3.xlsx']
-            ]
-            for case in cases:
-                args = {'xlsxfiles': case}
-                self.assertRaises(VifferError, render_form_objects, args)
+    def test_csv_report_accuracy(self):
+        """Test that output CSV file is reporting correctly."""
+        from argparse import Namespace
+        import pandas as pd
+        from io import StringIO
+        mock_cli = Namespace(files=['test/files/viffer/generic/001/1.xlsx',
+                                    'test/files/viffer/generic/001/2.xlsx'],
+                             format='csv')
+        output = StringIO(to_csv(mock_cli))
+        df = pd.read_csv(output)
 
-        def test_render_form_objects_returns_wb_obj():
-            """ODK form objects correctly created from ODK Xlsforms."""
-            for form in self.test_ref_forms:  # TODO: Use the __main__.py
-                # function, not the instance attribute.   
-                file = TEST_FORMS_DIRECTORY + '/' + form
-                self.assertTrue(isinstance(Xlsform(file), Xlsform))
-
-        test_render_form_objects_args_xlsxfiles_error_raised()
-        test_render_form_objects_returns_wb_obj()
+        # TODO: (2017/11/14 jef) The 'ins' variable is only necessary right now
+        #   because the order of test_df is changing every time. Not sure where
+        #   I need to fix this in order to make sure consistent ordering.
+        # test_df = pd.DataFrame([['noneed']], columns=['new'])
+        ins = ('15001', '.', 'noneed', 'Not sick/did not need care')
+        self.assertIn(df.iloc[0]['new'], ins)
 
 
 if __name__ == '__main__':
