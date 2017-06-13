@@ -73,8 +73,6 @@ test_all: test testdoc
 ssh:
 	ssh root@192.155.80.11
 
-
-
 # Application Management
 serve:server
 server:
@@ -83,3 +81,14 @@ server:
 # Scripts
 paper:
 	sh ./scripts/generic_paper_questionnaires.sh
+
+OUT_FILE=viffer_test.csv
+test_viffer:
+	python -m pmix.viffer test/files/viffer/short/1.xlsx test/files/viffer/short/2.xlsx
+#	python -m pmix.viffer test/files/viffer/generic/001/1.xlsx test/files/viffer/generic/001/2.xlsx
+#	python -m pmix.viffer.diff_by_id -f csv test/files/viffer/generic/001/1.xlsx test/files/viffer/generic/001/2.xlsx
+test_viffer_open:
+	python -m pmix.viffer test/files/viffer/short/1.xlsx test/files/viffer/short/2.xlsx > output/${OUT_FILE}
+#	python -m pmix.viffer test/files/viffer/generic/001/1.xlsx test/files/viffer/generic/001/2.xlsx > output/${OUT_FILE}
+#	python -m pmix.viffer.diff_by_id -f csv test/files/viffer/generic/001/1.xlsx test/files/viffer/generic/001/2.xlsx > output/${OUT_FILE}
+	open output/${OUT_FILE}
