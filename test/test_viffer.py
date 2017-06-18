@@ -92,4 +92,7 @@ class VifferMainTest(unittest.TestCase, VifferTest):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    # unittest.main()
+    import doctest
+    # from pmix.viffer.__main__ import analyze
+    doctest.testfile(TEST_FORMS_DIRECTORY + "/../" + "pmix/viffer/__main__.py")
