@@ -115,6 +115,15 @@ class Worksheet:
             else:
                 row.append(Cell())
 
+    @property
+    def header(self):
+        """Get the column headers for this worksheet.
+
+        Returns:
+            A tuple of the column headers as strings
+        """
+        return self.column_headers()
+
     def column_headers(self):
         """Get the column headers for this worksheet.
 
