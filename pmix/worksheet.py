@@ -120,15 +120,18 @@ class Worksheet:
         """Get the column headers for this worksheet.
 
         Returns:
-            A tuple of the column headers as strings
+            A list of the column headers as strings
         """
-        return self.column_headers()
+        return self.column_headers(data_type='list')
 
-    def column_headers(self):
+    def column_headers(self, data_type='tuple'):
         """Get the column headers for this worksheet.
 
+        Args:
+            data_type (str): Option for choosing data type to be returned.
+
         Returns:
-            A tuple of the column headers as strings
+            Column headers as strings.
         """
         if self.data:
             return tuple(str(i) for i in self.data[0])

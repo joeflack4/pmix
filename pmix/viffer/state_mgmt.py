@@ -1,5 +1,5 @@
 """State management module."""
-from sys import stderr
+from sys import stderr, stdout
 
 state = []
 store = {
@@ -23,10 +23,15 @@ def the(var):
     return state[-1][var]
 
 
-def print_state_history(toggle, output_stream='stdout'):
-    """Print state history."""
+def print_state_history(toggle=True, output_stream='stdout'):
+    """Print state history.
+
+    TODO: Add printout of additions ('+') and deletions ('-') beneath each
+      enumerated state change.
+    """
+    stream = stdout if output_stream is 'stdout' \
+        else stderr if output_stream is 'stderr' else stdout
     if toggle:
-        if output_stream is 'stdout':
-            print('\n\n'.join([str(n) for n in state]))
-        elif output_stream is 'stderr':
-            print('\n\n'.join([str(n) for n in state]), file=stderr)
+            # print('\n\n'.join([str(n) for n in state]), file=stream)
+            for i, val in enumerate(state):
+                print(str(i) + ': ' + str(val), file=stream)
