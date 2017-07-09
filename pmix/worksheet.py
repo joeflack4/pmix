@@ -120,7 +120,7 @@ class Worksheet:
         """Get the column headers for this worksheet.
 
         Returns:
-            A list of the column headers as strings
+            list: Column headers as strings.
         """
         return self.column_headers(data_type='list')
 

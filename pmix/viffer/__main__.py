@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 """Entry point for Viffer (Variable diff(erentiator)) package."""
 import argparse
+
 # from pmix.workbook import Workbook
 # from pmix.xlsform import Xlsform
-from pmix.viffer.error import VifferError
+from pmix.viffer.definitions.errors import VifferError
 
 
 def cli():

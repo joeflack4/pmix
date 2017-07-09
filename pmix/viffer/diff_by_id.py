@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Diff by ID - Report on differences between XLSForms by ID comparison."""
-from sys import stderr, stdout
 from argparse import ArgumentParser
+from sys import stderr, stdout
+
 from pmix.viffer.config import differ_by_id_config as config
-from pmix.viffer.constants import RELEVANT_WORKSHEETS
-from pmix.viffer.error import VifferError
+from pmix.viffer.definitions.constants import RELEVANT_WORKSHEETS
+from pmix.viffer.definitions.errors import VifferError
+from pmix.viffer.definitions.functions import in_common
 from pmix.viffer.state_mgmt import assign, the, print_state_history, \
     current_state
 # from pmix.viffer.state_mgmt import assign, the, print_state_history, \
 #     current_state, data, state
 # from collections import OrderedDict
 from pmix.xlsform import Xlsform
-
 
 data_schema = {
     'worksheets': {
@@ -64,7 +65,8 @@ def get_ws_ids(ws):
             if len(str(val)) is not valid_id['length']:
                 warnings['invalid_id_length_warning']['value'] = True
     # TODO: Get IDs in common.
-    print(ids)  # DEBUG
+    # print(ws.name)  # DEBUG
+    # print(ids)  # DEBUG
     return ids
 
 
@@ -74,6 +76,13 @@ def compare_by_worksheet(schema, ws_name, old_ws, new_ws):
     new_header = new_ws.header
     old_ws_ids = get_ws_ids(old_ws)
     new_ws_ids =get_ws_ids(new_ws)
+    common_ids = in_common(old_ws_ids, new_ws_ids)
+    print(ws_name)
+    print(common_ids)
+    # print(ws_name)
+    # print(old_ws_ids)
+    # print(new_ws_ids)
+    # print(schema)
     return schema
 
 
@@ -92,11 +101,6 @@ def get_worksheet_lists_with_ids(original_form, new_form):
     return list(set(original_form_list) & set(new_form_list))
 
 
-def get_common_relevant_ws_list(actual_set, total_possible_set):
-    """Get common relevant worksheet list."""
-    return list(set(actual_set) & set(total_possible_set))
-
-
 def compare_worksheets():
     """Compare worksheets."""
     # TODO: Carry on with experiment of exclusive state usage pattern.
@@ -113,24 +117,22 @@ def compare_worksheets():
     #                                 new_form=the('new_form')))
     schema = data_schema['worksheets']['<worksheet>'].copy()
     data['worksheets'] = {} if 'worksheets' not in data else data['worksheets']
-    wss = data['worksheets']
+    ws_report = data['worksheets']
     ws_lists = get_worksheet_lists_with_ids(original_form=the('original_form'),
                                             new_form=the('new_form'))
-    common_relevant_ws_list = \
-        get_common_relevant_ws_list(actual_set=ws_lists,
-                                    total_possible_set=RELEVANT_WORKSHEETS)
+    common_relevant_ws_list = in_common(ws_lists, RELEVANT_WORKSHEETS)
     for ws in common_relevant_ws_list:
-        wss[ws] = data_schema['worksheets']['<worksheet>'].copy() \
-            if ws not in wss else wss[ws]
+        ws_report[ws] = data_schema['worksheets']['<worksheet>'].copy() \
+            if ws not in ws_report else ws_report[ws]
         old_ws, new_ws = \
             get_worksheets_by_name(ws_name=ws,
                                    original_form=the('original_form'),
                                    new_form=the('new_form'))
-        wss[ws] = compare_by_worksheet(schema=schema, ws_name=ws,
+        ws_report[ws] = compare_by_worksheet(schema=schema, ws_name=ws,
                                        old_ws=old_ws, new_ws=new_ws)
     assign('data', data)
 
-    return ''
+    return '' # TODO
 
 
 def diff_by_id(files):
