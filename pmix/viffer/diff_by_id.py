@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Diff by ID - Report on differences between XLSForms by ID comparison."""
+from json import dumps as json_dumps
 from argparse import ArgumentParser
 from sys import stderr, stdout
-
 from pmix.viffer.config import differ_by_id_config as config
 from pmix.viffer.definitions.constants import RELEVANT_WORKSHEETS
 from pmix.viffer.definitions.errors import VifferError
-from pmix.viffer.definitions.functions import in_common
+from pmix.viffer.definitions.abstracts import intersect, non_empties, union, \
+    exclusive
 from pmix.viffer.state_mgmt import assign, the, print_state_history, \
     current_state
 # from pmix.viffer.state_mgmt import assign, the, print_state_history, \
@@ -31,6 +32,7 @@ data_schema = {
         }
     }
 }
+common_xlsform_elements_schema = {'<id>': {'<field>': {'new': '', 'old': ''}}}
 data = {}
 p_sh = config['output']['state_history']
 p_wrn = config['output']['warnings']
@@ -44,12 +46,16 @@ warnings = {
                    '\n' + valid_id_msg
     },
     'invalid_id_length_warning': {
-        'value': True,
+        'value': False,
         'message': 'One or more ID with an invalid length was found. Valid IDs'
                    ' are as follows.\n' + valid_id_msg
+    },
+    'inconsistent_worksheet_headers': {
+        'value': False,
+        'message': 'Worksheet \'{}\' has inconsistent fields. The following '
+                   'fields were only found in 1 out of 2 worksheets: {}.'
     }
 }
-
 
 def get_ws_ids(ws):
     """Get all component IDs in worksheet."""
@@ -64,26 +70,95 @@ def get_ws_ids(ws):
             ids.append(val)
             if len(str(val)) is not valid_id['length']:
                 warnings['invalid_id_length_warning']['value'] = True
-    # TODO: Get IDs in common.
-    # print(ws.name)  # DEBUG
-    # print(ids)  # DEBUG
-    return ids
+    return sorted(ids)
 
 
-def compare_by_worksheet(schema, ws_name, old_ws, new_ws):
+def get_ws_data_by_id(ws, ids):
+    """Get worksheet data, indexed by ID."""
+    old_id_index = ws.header.index('id')
+    # 1. Schema {'<id>': [cell1, cell2...]}
+    ws_by_id = {str(row[old_id_index].value):
+                               [cell.value for cell in row]
+                           for row in ws.data if row[old_id_index].value in ids}
+    # 2. Schema {'<id>': {field1: cell1, field2: cell2...}}
+    for key, val in ws_by_id.items():
+        hdr = ws.header
+        ws_by_id[key] = {field: val[hdr.index(field)]
+                             for field in hdr if val[hdr.index(field)]}
+    return ws_by_id
+
+
+def get_common_ws_headers(worksheets):
+    """Get common worksheet headers."""
+    headers = [ws.header for ws in worksheets]
+    header_intersect = intersect(non_empties(headers))
+    header_union = union(non_empties(headers))
+    missing = exclusive(header_union, header_intersect)
+    if missing:
+        warn = warnings['inconsistent_worksheet_headers']
+        warn['value'] = True
+        warn['message'] = warn['message'].format(worksheets[0].name, missing)
+    return header_intersect
+
+
+def get_common_xlsform_elements(ids, old_ws, new_ws):
+    """Get common XlsForm elements.
+
+    Returns:
+        dict: Of schema {'<id>': {'<field>': {'new': '', 'old': ''}}}
+    """
+    headers = get_common_ws_headers([old_ws, new_ws])
+    old = get_ws_data_by_id(ws=old_ws, ids=ids)
+    new = get_ws_data_by_id(ws=new_ws, ids=ids)
+    common_xlsform_elements = {
+        id: {
+            field: {
+                'new': new[id][field] if field in new[id] else '',
+                'old': old[id][field] if field in old[id] else ''
+            } for field in headers
+        } for id in sorted([str(i) for i in ids])
+    }
+    # print(common_xlsform_elements['15022'])  # DEBUG
+    return common_xlsform_elements
+
+
+def get_xlsform_element_changes(elements):
+    """Get common XlsForm elements.
+
+    Returns:
+        dict: Of schema {'<id>': {'<field>': {'+': '', '-': ''}}}
+    """
+    # Create data structure.
+    xec = {
+        id: {
+            field: {
+                '+': field_data['new'],
+                '-': field_data['old']
+            } if field_data['new'] else {
+                '-': field_data['old']
+            } for field, field_data in row_data.items()
+            if field_data['new'] != field_data['old']
+               or field == 'name'  # TODO: Generate a new report sorted by name, and remove this condition.
+        } for id, row_data in elements.items()
+    }
+    # TODO Also remove new items that appear in report but had no changes, but appear because 'name' is being forced.
+    # Remove unchanged elements.
+    xlsform_element_changes = {k: v for k,v in xec.items() if v}
+
+    return xlsform_element_changes
+
+
+def compare_by_worksheet(ws_name, old_ws, new_ws):
     """Compare changes by worksheet."""
-    old_header = old_ws.header
-    new_header = new_ws.header
     old_ws_ids = get_ws_ids(old_ws)
     new_ws_ids =get_ws_ids(new_ws)
-    common_ids = in_common(old_ws_ids, new_ws_ids)
-    print(ws_name)
-    print(common_ids)
-    # print(ws_name)
-    # print(old_ws_ids)
-    # print(new_ws_ids)
-    # print(schema)
-    return schema
+    common_ids = intersect(old_ws_ids, new_ws_ids)
+    # common_ids = sorted([str(i) for i in intersect(old_ws_ids, new_ws_ids)]
+    common_xlsform_elements = get_common_xlsform_elements(
+        ids=common_ids, old_ws=old_ws, new_ws=new_ws)
+    xlsform_element_changes = get_xlsform_element_changes(
+        common_xlsform_elements)
+    return xlsform_element_changes
 
 
 def get_worksheets_by_name(ws_name, original_form, new_form):
@@ -115,12 +190,11 @@ def compare_worksheets():
     #     assign(data['worksheets'][ws],
     #           compare_by_worksheet(ws=ws, original_form=the('original_form'),
     #                                 new_form=the('new_form')))
-    schema = data_schema['worksheets']['<worksheet>'].copy()
     data['worksheets'] = {} if 'worksheets' not in data else data['worksheets']
     ws_report = data['worksheets']
     ws_lists = get_worksheet_lists_with_ids(original_form=the('original_form'),
                                             new_form=the('new_form'))
-    common_relevant_ws_list = in_common(ws_lists, RELEVANT_WORKSHEETS)
+    common_relevant_ws_list = intersect(ws_lists, RELEVANT_WORKSHEETS)
     for ws in common_relevant_ws_list:
         ws_report[ws] = data_schema['worksheets']['<worksheet>'].copy() \
             if ws not in ws_report else ws_report[ws]
@@ -128,11 +202,12 @@ def compare_worksheets():
             get_worksheets_by_name(ws_name=ws,
                                    original_form=the('original_form'),
                                    new_form=the('new_form'))
-        ws_report[ws] = compare_by_worksheet(schema=schema, ws_name=ws,
-                                       old_ws=old_ws, new_ws=new_ws)
+        ws_report[ws] = compare_by_worksheet(ws_name=ws,
+                                             old_ws=old_ws, new_ws=new_ws)
     assign('data', data)
 
-    return '' # TODO
+    # print(current_state())
+    return data
 
 
 def diff_by_id(files):
@@ -143,8 +218,6 @@ def diff_by_id(files):
     assign('original_form', the('xlsforms')[0])
     assign('new_form', the('xlsforms')[1])
     out = compare_worksheets()
-
-    # out = ''
     return out
 
 
@@ -181,6 +254,7 @@ def run():
     try:
         assign('args', cli())
         result = diff_by_id(files=the('args').files)
+        result = json_dumps(result, indent=2)
         # files = ['test/files/viffer/1.xlsx', 'test/files/viffer/2.xlsx']
         # result = diff_by_id(files=files)  # Temporarily for development.
         print(result)
