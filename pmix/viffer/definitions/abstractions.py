@@ -51,3 +51,18 @@ def exclusive(x, y=None):
     """Get sorted list of uncommon elements in two iterables."""
     x, y = de_list_pair(x, y)
     return sorted(list(set(x) ^ set(y)))
+
+
+def ne_dict(dictionary):
+    """Return pruned (non-empty) dictionary."""
+    return {k: v for k, v in dictionary.items() if v}
+
+
+def pruned(dictionary):
+    """Return pruned (non-empty) dictionary."""
+    return ne_dict(dictionary)
+
+
+def prune_by_n_required_children(dictionary, n=1):
+    """Return with only key value pairs that meet required n children."""
+    return {key: val for key, val in dictionary.items() if len(val) >= n}

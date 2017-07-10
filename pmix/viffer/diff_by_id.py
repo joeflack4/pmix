@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Diff by ID - Report on differences between XLSForms by ID comparison."""
+from sys import stderr, stdout
+from datetime import datetime
 from json import dumps as json_dumps
 from argparse import ArgumentParser
-from sys import stderr, stdout
 from pmix.viffer.config import differ_by_id_config as config
-from pmix.viffer.definitions.constants import RELEVANT_WORKSHEETS
+from pmix.viffer.definitions.constants import RELEVANT_WORKSHEETS, \
+    MANDATORY_REPORT_FIELDS
 from pmix.viffer.definitions.errors import VifferError
-from pmix.viffer.definitions.abstracts import intersect, non_empties, union, \
-    exclusive
+from pmix.viffer.definitions.abstractions import intersect, non_empties, union, \
+    exclusive, pruned, prune_by_n_required_children
 from pmix.viffer.state_mgmt import assign, the, print_state_history, \
     current_state
 # from pmix.viffer.state_mgmt import assign, the, print_state_history, \
@@ -118,18 +120,25 @@ def get_common_xlsform_elements(ids, old_ws, new_ws):
             } for field in headers
         } for id in sorted([str(i) for i in ids])
     }
-    # print(common_xlsform_elements['15022'])  # DEBUG
+
     return common_xlsform_elements
 
 
-def get_xlsform_element_changes(elements):
-    """Get common XlsForm elements.
+def empty_mandatory_fields_removed(dictionary):
+    """Return XlsForm elements dict with empty mandatories removed."""
+    # TODO: This will cause an error if there is only 1 field to compare.
+    return prune_by_n_required_children(dictionary, 2)
+
+
+def get_xlsform_element_changes_by_id(elements):
+    """Get common XlsForm elements, indexed by ID.
 
     Returns:
         dict: Of schema {'<id>': {'<field>': {'+': '', '-': ''}}}
     """
     # Create data structure.
-    xec = {
+    MRF = MANDATORY_REPORT_FIELDS
+    xec = pruned({
         id: {
             field: {
                 '+': field_data['new'],
@@ -138,26 +147,47 @@ def get_xlsform_element_changes(elements):
                 '-': field_data['old']
             } for field, field_data in row_data.items()
             if field_data['new'] != field_data['old']
-               or field == 'name'  # TODO: Generate a new report sorted by name, and remove this condition.
+               or field in MRF
         } for id, row_data in elements.items()
-    }
-    # TODO Also remove new items that appear in report but had no changes, but appear because 'name' is being forced.
-    # Remove unchanged elements.
-    xlsform_element_changes = {k: v for k,v in xec.items() if v}
+    })
 
-    return xlsform_element_changes
+    # Remove ID's were listed just because 'name' was forced.
+    return empty_mandatory_fields_removed(xec)
 
 
-def compare_by_worksheet(ws_name, old_ws, new_ws):
+def get_xlsform_element_changes_by_name(elements_by_id):
+    """Get common XlsForm elements, incexed by name."""
+    MRF = 'name'
+    xec = pruned({
+        row_data['name']['+']: {
+            key: val for key, val in row_data.items()
+            # if key != 'name' or key == 'name' and val['+'] != val['-']
+            if key not in MRF or key in MRF and val['+'] != val['-']
+        } for id, row_data in elements_by_id.items()
+    })
+
+    # TODO: Add ID field to all elements.
+
+    # TODO: Add option of want to include old var name instead of new.
+
+    # Remove ID's were listed just because 'list_name' was forced.
+    return empty_mandatory_fields_removed(xec)
+
+
+def compare_by_worksheet(old_ws, new_ws):
     """Compare changes by worksheet."""
-    old_ws_ids = get_ws_ids(old_ws)
-    new_ws_ids =get_ws_ids(new_ws)
-    common_ids = intersect(old_ws_ids, new_ws_ids)
     # common_ids = sorted([str(i) for i in intersect(old_ws_ids, new_ws_ids)]
+    common_ids = intersect(get_ws_ids(old_ws), get_ws_ids(new_ws))
+
     common_xlsform_elements = get_common_xlsform_elements(
         ids=common_ids, old_ws=old_ws, new_ws=new_ws)
-    xlsform_element_changes = get_xlsform_element_changes(
+
+    xec = get_xlsform_element_changes_by_id(
         common_xlsform_elements)
+
+    xlsform_element_changes = \
+        get_xlsform_element_changes_by_name(elements_by_id=xec)
+
     return xlsform_element_changes
 
 
@@ -202,12 +232,27 @@ def compare_worksheets():
             get_worksheets_by_name(ws_name=ws,
                                    original_form=the('original_form'),
                                    new_form=the('new_form'))
-        ws_report[ws] = compare_by_worksheet(ws_name=ws,
-                                             old_ws=old_ws, new_ws=new_ws)
+        ws_report[ws] = compare_by_worksheet(old_ws=old_ws, new_ws=new_ws)
     assign('data', data)
 
-    # print(current_state())
-    return data
+    report = {
+        'changes': {
+            'metadata': {
+                'source_files': {
+                    'new': the('new_form').settings['form_title'],
+                    'old': the('original_form').settings['form_title']
+                },
+                'date': str(datetime.now())[:-7] # Remove milliseconds.
+            },
+            'data': the('data')
+        }
+    }
+
+    assign('report', report)
+
+    # print(current_state())  # DEBUG
+    return the('report')
+
 
 
 def diff_by_id(files):
@@ -254,9 +299,7 @@ def run():
     try:
         assign('args', cli())
         result = diff_by_id(files=the('args').files)
-        result = json_dumps(result, indent=2)
-        # files = ['test/files/viffer/1.xlsx', 'test/files/viffer/2.xlsx']
-        # result = diff_by_id(files=files)  # Temporarily for development.
+        result = json_dumps(result, indent=4)
         print(result)
     except VifferError as err:
         print('VifferError: ' + str(err))
