@@ -1,14 +1,12 @@
 """State management module."""
 from sys import stderr, stdout
 
-state = []
-store = {
-    'data': {}
-}
+state = []  # pylint: disable=invalid-name
+store = {'data': {}}  # pylint: disable=invalid-name
 state.append(store)
 # current_state = state[-1]
-current_state = lambda: state[-1]
-data = current_state()['data']
+current_state = lambda: state[-1]  # pylint: disable=invalid-name
+DATA = current_state()['data']
 
 
 def assign(var, val):
@@ -29,9 +27,9 @@ def print_state_history(toggle=True, output_stream='stdout'):
     TODO: Add printout of additions ('+') and deletions ('-') beneath each
       enumerated state change.
     """
-    stream = stdout if output_stream is 'stdout' \
-        else stderr if output_stream is 'stderr' else stdout
+    stream = stdout if output_stream == 'stdout' \
+        else stderr if output_stream == 'stderr' else stdout
     if toggle:
-            # print('\n\n'.join([str(n) for n in state]), file=stream)
-            for i, val in enumerate(state):
-                print(str(i) + ': ' + str(val), file=stream)
+        # print('\n\n'.join([str(n) for n in state]), file=stream)
+        for i, val in enumerate(state):
+            print(str(i) + ': ' + str(val), file=stream)

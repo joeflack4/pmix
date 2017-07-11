@@ -54,12 +54,12 @@ def exclusive(x, y=None):
 
 
 def ne_dict(dictionary):
-    """Return pruned (non-empty) dictionary."""
+    """Prune dictionary of empty key-value pairs."""
     return {k: v for k, v in dictionary.items() if v}
 
 
 def pruned(dictionary):
-    """Return pruned (non-empty) dictionary."""
+    """Prune dictionary of empty key-value pairs."""
     return ne_dict(dictionary)
 
 

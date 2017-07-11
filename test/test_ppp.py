@@ -206,24 +206,59 @@ class OdkFormTest(unittest.TestCase, PppTest):
         """Test expected results of converted questionnaire based on position.
         """
         forms = self.get_forms(self.data)
+        for i, expected_output in self.data:
+            output = forms[i['file']].questionnaire[i['position']]
+            self.assertTrue(str(output) == expected_output['repr'])
+            self.assertTrue(isinstance(output, expected_output['class']))
 
-        for datum in self.data:
-            expected_output = datum['outputs']
-            output = \
-                forms[datum['inputs']['file']].questionnaire[datum['position']]
-
-            # - Check Object Representation
-            got = str(output)
-            expected = expected_output['repr']
-            msg = '\nGot: {}\nExpected: {}'.format(got, expected)
-            self.assertEqual(got, expected, msg)
-
-            # - Check Object Class
-            got = output
-            expected = expected_output['class']
-            msg = '\nGot: {}\nExpected: {}'.format(got, expected)
-            # noinspection PyTypeChecker
-            self.assertTrue(isinstance(got, expected), msg)
+    # def test_languages(self):
+    #     """Language based tests."""
+    #     def test_get_label_language_list():
+    #         """Test OdkForm.get_label_language_list()."""
+    #         test_input = {
+    #             'audio': {
+    #                 'has_generic_language_field': True,
+    #                 'language_list': []
+    #             },
+    #             'constraint_message': {
+    #                 'has_generic_language_field': False,
+    #                 'language_list': ['Ateso', 'English', 'Luganda',
+    #                                   'Lugbara', 'Luo', 'Lusoga',
+    #                                   'Ngakarimojong', 'Runyankole-Rukiga',
+    #                                   'Runyoro-Rutoro']
+    #             },
+    #             'hint': {
+    #                 'has_generic_language_field': False,
+    #                 'language_list': ['Ateso', 'English', 'Luganda',
+    #                                   'Lugbara', 'Luo', 'Lusoga',
+    #                                   'Ngakarimojong', 'Runyankole-Rukiga',
+    #                                   'Runyoro-Rutoro']
+    #             },
+    #             'image': {
+    #                 'has_generic_language_field': False,
+    #                 'language_list': ['Ateso', 'English', 'Luganda',
+    #                                   'Lugbara', 'Luo', 'Lusoga',
+    #                                   'Ngakarimojong', 'Runyankole-Rukiga',
+    #                                   'Runyoro-Rutoro']
+    #             },
+    #             'label': {
+    #                 'has_generic_language_field': False,
+    #                 'language_list': ['Ateso', 'English', 'Luganda',
+    #                                   'Lugbara', 'Luo', 'Lusoga',
+    #                                   'Ngakarimojong', 'Runyankole-Rukiga',
+    #                                   'Runyoro-Rutoro']
+    #             },
+    #             'media::video': {
+    #                 'has_generic_language_field': False,
+    #                 'language_list': ['English']
+    #             }
+    #         }
+    #     expected_output = ['Ateso', 'English', 'Luganda', 'Lugbara', 'Luo',
+    #                        'Lusoga', 'Ngakarimojong', 'Runyankole-Rukiga',
+    #                        'Runyoro-Rutoro']
+    #     self.assertTrue(
+    #         OdkForm.get_label_language_list(test_input) == expected_output)
+    # test_get_label_language_list()
 
     def test_to_html(self):
         """Test to_html method."""

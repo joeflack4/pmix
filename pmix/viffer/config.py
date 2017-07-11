@@ -1,7 +1,7 @@
 """Configuration settings for PPP package."""
 
 
-differ_by_id_config = {
+DIFFER_BY_ID_CONFIG = {
     'output': {
         'state_history': {
             'stream': 'stderr',

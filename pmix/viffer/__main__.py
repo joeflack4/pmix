@@ -64,9 +64,9 @@ def output(pending_output, output_format):
         """
         print(data)
 
-    if output_format is 'html':
+    if output_format == 'html':
         to_html(pending_output)
-    elif output_format is 'text' or not output_format:
+    elif output_format == 'text' or not output_format:
         to_text(pending_output)
 
 
@@ -87,7 +87,7 @@ def analyze(forms):
     Returns:
         dict: An analysis of variable differences.
     """
-    analysis = {}
+    analysis = forms  # Temporary placeholder.
 
     return analysis
 
@@ -104,7 +104,7 @@ def render_form_objects(files):
     Raises:
         VifferError: Must select two and only two files to diff.
     """
-    if len(files) is not 2:
+    if len(files) != 2:
         msg = 'VifferError: Must select two and only two files to diff.'
         raise VifferError(msg)
     form_objects = []
