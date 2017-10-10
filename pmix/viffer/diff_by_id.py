@@ -11,7 +11,7 @@ from pmix.viffer.definitions.constants import RELEVANT_WORKSHEETS, \
 from pmix.viffer.definitions.errors import VifferError
 from pmix.viffer.definitions.abstractions import intersect, non_empties, \
     union, exclusive, pruned, prune_by_n_required_children
-from pmix.viffer.state_mgmt import assign, the, print_state_history, \
+from pmix.viffer.utils.state_mgmt import assign, the, print_state_history, \
     current_state
 # from pmix.viffer.state_mgmt import assign, the, print_state_history, \
 #     current_state, DATA, state
