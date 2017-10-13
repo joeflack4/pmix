@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Diff by ID - Report on differences between XLSForms by ID comparison."""
+import pandas as pd
 from sys import stderr, stdout
+from copy import copy
 from datetime import datetime
 from json import dumps as json_dumps
 from argparse import ArgumentParser
@@ -19,28 +21,7 @@ from pmix.viffer.utils.state_mgmt import assign, the, print_state_history, \
 from pmix.xlsform import Xlsform
 
 
-P_SH = CONFIG['output']['state_history']
-P_WRN = CONFIG['output']['warnings']
-VALID_ID = CONFIG['validation']['id']
-VALID_ID_MSG = '  * Type: {}\n  * Length: {}\n  * Null character: {}'\
-    .format(VALID_ID['type'], VALID_ID['length'], VALID_ID['null_character'])
-warnings = {  # pylint: disable=invalid-name
-    'invalid_id': {
-        'value': False,
-        'message': 'One or more IDs were malformed. Valid IDs are as follows.'
-                   '\n' + VALID_ID_MSG
-    },
-    'invalid_id_length_warning': {
-        'value': False,
-        'message': 'One or more ID with an invalid length was found. Valid IDs'
-                   ' are as follows.\n' + VALID_ID_MSG
-    },
-    'inconsistent_worksheet_headers': {
-        'value': False,
-        'message': 'Worksheet \'{}\' has inconsistent fields. The following '
-                   'fields were only found in 1 out of 2 worksheets: {}.'
-    }
-}
+# To JSON
 DATA_SCHEMA = {  # TODO: Account for choices being sortable by list_name.
     'worksheets': {
         '<worksheet>': {
@@ -179,7 +160,7 @@ def xlsform_element_changes_by_name(elements_by_id):
     return empty_mandatory_fields_removed(xec)
 
 
-def compare_by_worksheet(old_ws, new_ws):
+def _json_compare_by_worksheet(old_ws, new_ws):
     """Compare changes by worksheet."""
     # common_ids = sorted([str(i) for i in intersect(old_ws_ids, new_ws_ids)]
     common_ids = intersect(get_ws_ids(old_ws), get_ws_ids(new_ws))
@@ -207,7 +188,7 @@ def get_worksheet_lists_with_ids(original_form, new_form):
     return list(set(original_form_list) & set(new_form_list))
 
 
-def compare_worksheets():
+def _json_compare_worksheets():
     """Compare worksheets."""
     # TODO: Carry on with experiment of exclusive state usage pattern.
     # if 'worksheets' not in data:
@@ -233,7 +214,8 @@ def compare_worksheets():
             get_worksheets_by_name(ws_name=ws,
                                    original_form=the('original_form'),
                                    new_form=the('new_form'))
-        ws_report[ws] = compare_by_worksheet(old_ws=old_ws, new_ws=new_ws)
+        ws_report[ws] = _json_compare_by_worksheet(old_ws=old_ws,
+                                                   new_ws=new_ws)
     assign('data', data)
 
     report = {
@@ -254,15 +236,191 @@ def compare_worksheets():
     return the('report')  # print(current_state())  # DEBUG
 
 
-def diff_by_id(files):
-    """Summarize differences of two forms by comparing IDs of components."""
+def to_json(args):
+    """To JSON.
+
+    Summarize differences of two forms by comparing IDs of components.
+    """
     if 'data' not in current_state():
         assign('data', {})
-    assign('xlsforms', [Xlsform(file) for file in files])
+    assign('xlsforms', [Xlsform(file) for file in args.files])
     assign('original_form', the('xlsforms')[0])
     assign('new_form', the('xlsforms')[1])
-    out = compare_worksheets()
-    return out
+
+    result = _json_compare_worksheets()
+    result = json_dumps(result, indent=4)
+
+    return result
+
+
+# To CSV
+HEADER = ['worksheet', 'id', 'field', 'old', 'new', 'different?']
+
+
+def _csv_compare_by_worksheet(report_schema, ws_name, old_fields, new_fields, 
+                              all_fields, common_ids, old_ws, new_ws):
+    """Compare changes by worksheet."""
+    ws_data = []
+    report_indexes = \
+        {col_name: report_schema.index(col_name) for col_name in report_schema}
+    old_field_indexes = \
+        {col_name: old_fields.index(col_name) for col_name in old_fields}
+    new_field_indexes = \
+        {col_name: new_fields.index(col_name) for col_name in new_fields}
+
+    old_ws_array, new_ws_array = pd.DataFrame(old_ws), pd.DataFrame(new_ws)
+
+    # print(old_ws_array)
+
+    for _id in common_ids:
+        for field in all_fields:
+
+            row = [col_name for col_name in report_schema]
+
+            # TODO: Make a config, and set it to ignore by default rows that
+            # have not changed.
+            # TODO: Intersect instead of set() in all_fields arround line ~400
+            # TODO: On top of returning "N/A", also print out a report/warning
+            #  for fields that are in one file but not in the other.
+
+            # try:
+            old_record = old_ws_array.loc[
+                old_ws_array[old_field_indexes['id']] == str(_id)]
+            old_row_num = old_record.index[0]
+            if field in old_field_indexes:
+                old_field_val = \
+                    old_record[old_field_indexes[field]].get(old_row_num)
+            else:
+                old_field_val = 'N/A'
+
+            new_record = new_ws_array.loc[
+                new_ws_array[new_field_indexes['id']] == str(_id)]
+            new_row_num = new_record.index[0]
+            if field in new_field_indexes:
+                new_field_val = \
+                    new_record[new_field_indexes[field]].get(new_row_num)
+            else:
+                new_field_val = 'N/A'
+            # except:
+            #     from pdb import set_trace
+            #     set_trace()
+            # old = row[report_indexes['old']] = ''
+            # new = row[report_indexes['new']] = ''
+
+            row[report_indexes['worksheet']] = ws_name
+            row[report_indexes['id']] = str(_id)
+            row[report_indexes['field']] = field
+            row[report_indexes['old']] = \
+                old = old_field_val if old_field_val else ''
+            row[report_indexes['new']] = \
+                new = new_field_val if new_field_val else ''
+            row[report_indexes['different?']] = str(old == new)
+
+            ws_data.append(row)
+
+    # headerless_ws_data = ws_data.pop(0)
+    # return headerless_ws_data
+    # return []
+
+    return ws_data
+
+    # Debugging
+    # from sys import stderr
+    # print([cell.value for cell in old_ws[0] if cell.value is not None],
+    #       file = stderr)
+    # return ''
+    # Debugging
+
+
+def _2d_arr_to_csv(_2d_array):
+    """2d array to csv."""
+    csv_str = ''
+    for row in _2d_array:
+        temp_row = ''
+        for val in row:
+            temp_row += val + ','
+        csv_str += temp_row + '\n'
+    return csv_str
+
+
+def prune_rows_by_missing_field_value(ws, index):
+    """Remove rows without any id."""
+    # return [row for row in ws if row[index] is not None]
+    # from sys import stderr
+    # rowz = [row for row in ws if row[index] is not None]
+    # idz = [row[index] for row in rowz]
+    # print(idz, file=stderr)
+    return [row for row in ws if row[index] is not None]
+
+
+def formatted_ws_data(ws):
+    """Format worksheet."""
+    formatted_ws = [[str(cell.value) for cell in row] for row in ws]
+    id_col_index = formatted_ws.pop(0).index('id')
+    # id_col_index = formatted_ws[0].index('id')
+    filtered_ws = prune_rows_by_missing_field_value(formatted_ws, id_col_index)
+    return sorted(filtered_ws, key=lambda x: x[id_col_index])
+
+
+def to_csv(args):
+    """To CSV."""
+    xlsforms = [Xlsform(file) for file in args.files]
+    new_form, original_form = xlsforms[1], xlsforms[0]
+    report = [copy(HEADER)]
+
+    ws_lists = get_worksheet_lists_with_ids(original_form=original_form,
+                                            new_form=new_form)
+    common_relevant_ws_list = intersect(ws_lists, RELEVANT_WORKSHEETS)
+
+    for ws in common_relevant_ws_list:
+        old_ws, new_ws = get_worksheets_by_name(ws_name=ws,
+                                                original_form=original_form,
+                                                new_form=new_form)
+        common_ids = intersect(get_ws_ids(old_ws), get_ws_ids(new_ws))
+        old_fields = [cell.value or None for cell in old_ws[0]]
+        new_fields = [cell.value or None for cell in new_ws[0]]
+        all_fields = [field for field in set(old_fields + new_fields) if field
+                      is not None]
+        old_ws, new_ws = formatted_ws_data(old_ws), formatted_ws_data(new_ws)
+
+        report += _csv_compare_by_worksheet(report_schema=HEADER,
+                                            ws_name=ws,
+                                            old_fields=old_fields,
+                                            new_fields=new_fields,
+                                            all_fields=all_fields,
+                                            common_ids=common_ids,
+                                            old_ws=old_ws,
+                                            new_ws=new_ws)
+
+    # report = [['1', '2'], ['3', '4']]
+    result = _2d_arr_to_csv(report)
+
+    return result
+
+
+# General
+P_SH = CONFIG['output']['state_history']
+P_WRN = CONFIG['output']['warnings']
+VALID_ID = CONFIG['validation']['id']
+VALID_ID_MSG = '  * Type: {}\n  * Length: {}\n  * Null character: {}'\
+    .format(VALID_ID['type'], VALID_ID['length'], VALID_ID['null_character'])
+warnings = {  # pylint: disable=invalid-name
+    'invalid_id': {
+        'value': False,
+        'message': 'One or more IDs were malformed. Valid IDs are as follows.'
+                   '\n' + VALID_ID_MSG
+    },
+    'invalid_id_length_warning': {
+        'value': False,
+        'message': 'One or more ID with an invalid length was found. Valid IDs'
+                   ' are as follows.\n' + VALID_ID_MSG
+    },
+    'inconsistent_worksheet_headers': {
+        'value': False,
+        'message': 'Worksheet \'{}\' has inconsistent fields. The following '
+                   'fields were only found in 1 out of 2 worksheets: {}.'
+    }
+}
 
 
 def print_warnings(toggle=True, output_stream='stdout'):
@@ -283,6 +441,10 @@ def cli():
     prog_desc = 'Report on differences between XLSForms by ID comparison.'
     parser = ArgumentParser(description=prog_desc)
 
+    format_help = 'The format to generate. Default is \'csv\'.'
+    parser.add_argument('-f', '--format', choices=('csv', 'json'), nargs='?',
+                        const='csv', default='csv', help=format_help)
+
     file_help = 'Paths to two XLSForms in the order of older to newer.'
     parser.add_argument('files', nargs='+', help=file_help)
 
@@ -297,8 +459,8 @@ def run():
     """Run module."""
     try:
         assign('args', cli())
-        result = diff_by_id(files=the('args').files)
-        result = json_dumps(result, indent=4)
+        func = to_json if the('args').format == 'json' else to_csv
+        result = func(the('args'))
         print(result)
     except VifferError as err:
         print('VifferError: ' + str(err))
@@ -308,6 +470,7 @@ def log():
     """Log output."""
     print_state_history(output_stream=P_SH['stream'], toggle=P_SH['value'])
     print_warnings(output_stream=P_WRN['stream'], toggle=P_WRN['value'])
+
 
 if __name__ == '__main__':
     run()
