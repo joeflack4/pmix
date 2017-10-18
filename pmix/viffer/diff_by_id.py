@@ -41,8 +41,29 @@ DATA_SCHEMA = {  # TODO: Account for choices being sortable by list_name.
 data = {}  # pylint: disable=invalid-name
 
 
+def validate(validation_type=None, data=None):
+    """Validate."""
+    default_validations = {
+        'id': ''
+    }
+    validations = {
+        validation_type: data
+    }
+    if not validation_type and not data:
+        validations = default_validations
+    if 'id' in validations:
+        err = 'Both workbooks being compared must have 1 or more worksheets ' \
+              'of the same name where both worksheets have an \'id\' column.'
+        if not validations['id']:
+            raise VifferError(err)
+
+
 def get_ws_ids(ws):
-    """Get all component IDs in worksheet."""
+    """Get all component IDs in worksheet.
+
+    Side effects:
+        validate()
+    """
     ids = []
     id_index = ws.header.index('id')
     for row in ws.data[1:]:
@@ -181,11 +202,20 @@ def get_worksheets_by_name(ws_name, original_form, new_form):
 
 
 def get_worksheet_lists_with_ids(original_form, new_form):
-    """Get worksheet lists."""
+    """Get worksheet lists.
+
+    Side effects:
+        validate()
+    """
     original_form_list = [ws.name for ws in original_form.data
                           if 'id' in ws.header]
     new_form_list = [ws.name for ws in new_form.data if 'id' in ws.header]
-    return list(set(original_form_list) & set(new_form_list))
+
+    ws_lists_with_ids = list(set(original_form_list) & set(new_form_list))
+
+    validate(validation_type='id', data=ws_lists_with_ids)
+
+    return ws_lists_with_ids
 
 
 def _json_compare_worksheets():

@@ -112,11 +112,14 @@ def render_form_objects(files):
 
 
 if __name__ == '__main__':
-    try:
-        USER_INPUT = cli()
-        FORMS = render_form_objects(USER_INPUT['xlsxfiles'])
-        print(FORMS)
-        ANALYSIS = analyze(FORMS)
-        output(ANALYSIS, USER_INPUT['format'])
-    except VifferError as err:
-        print(err)
+    # try:
+    #     USER_INPUT = cli()
+    #     FORMS = render_form_objects(USER_INPUT['xlsxfiles'])
+    #     print(FORMS)
+    #     ANALYSIS = analyze(FORMS)
+    #     output(ANALYSIS, USER_INPUT['format'])
+    # except VifferError as err:
+    #     print(err)
+    from .diff_by_id import run, log
+    run()
+    log()
