@@ -7,7 +7,10 @@ import re
 from os import path as os_path, listdir
 
 # from pmix.workbook import Workbook
-from pmix.viffer.__main__ import to_csv
+from pmix.xlsform import Xlsform
+from pmix.viffer.__main__ import render_form_objects
+from pmix.viffer.definitions.errors import VifferError
+from pmix.viffer.diff_by_id import to_csv
 
 TEST_FORMS_DIRECTORY = os_path.dirname(os_path.realpath(__file__))
 
@@ -91,6 +94,24 @@ class VifferMainTest(unittest.TestCase, VifferTest):
 
         test_viffer_error()
         test_return()
+
+    def test_csv_report_accuracy(self):
+        """Test that output CSV file is reporting correctly."""
+        from argparse import Namespace
+        import pandas as pd
+        from io import StringIO
+        mock_cli = Namespace(files=['test/files/viffer/generic/001/1.xlsx',
+                                    'test/files/viffer/generic/001/2.xlsx'],
+                             format='csv')
+        output = StringIO(to_csv(mock_cli))
+        df = pd.read_csv(output)
+
+        # TODO: (2017/11/14 jef) The 'ins' variable is only necessary right now
+        #   because the order of test_df is changing every time. Not sure where
+        #   I need to fix this in order to make sure consistent ordering.
+        # test_df = pd.DataFrame([['noneed']], columns=['new'])
+        ins = ('15001', '.', 'noneed', 'Not sick/did not need care')
+        self.assertIn(df.iloc[0]['new'], ins)
 
 
 if __name__ == '__main__':

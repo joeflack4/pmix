@@ -2,12 +2,14 @@
 # -*- coding: utf-8 -*-
 """Diff by ID - Report on differences between XLSForms by ID comparison."""
 import pandas as pd
+from io import StringIO
 from sys import stderr, stdout
 from copy import copy
 from datetime import datetime
 from json import dumps as json_dumps
 from argparse import ArgumentParser
-from pmix.viffer.config import DIFFER_BY_ID_CONFIG as CONFIG
+from pmix.viffer.config import DIFFER_BY_ID_CONFIG as CONFIG, \
+    MISSING_COL_TOKEN, MISSING_VAL_TOKEN, EMPTY_TOKENS
 from pmix.viffer.definitions.constants import RELEVANT_WORKSHEETS, \
     MANDATORY_REPORT_FIELDS
 from pmix.viffer.definitions.errors import VifferError
@@ -41,15 +43,15 @@ DATA_SCHEMA = {  # TODO: Account for choices being sortable by list_name.
 data = {}  # pylint: disable=invalid-name
 
 
-def validate(validation_type=None, data=None):
+def validate(validation_type=None, _data=None):
     """Validate."""
     default_validations = {
         'id': ''
     }
     validations = {
-        validation_type: data
+        validation_type: _data
     }
-    if not validation_type and not data:
+    if not validation_type and not _data:
         validations = default_validations
     if 'id' in validations:
         err = 'Both workbooks being compared must have 1 or more worksheets ' \
@@ -66,15 +68,23 @@ def get_ws_ids(ws):
     """
     ids = []
     id_index = ws.header.index('id')
+
     for row in ws.data[1:]:
         val = row[id_index].value
-        if not isinstance(val, VALID_ID['type']) \
-                and val is not VALID_ID['null_character']:
-            warnings['invalid_id']['value'] = True
-        if isinstance(val, VALID_ID['type']):
-            ids.append(val)
+        if 'type' in CONFIG['validation']['id']:
+            if not isinstance(val, VALID_ID['type']) \
+                    and val is not VALID_ID['null_character']:
+                warnings['invalid_id']['value'] = True
+            if isinstance(val, VALID_ID['type']) \
+                    and val is not VALID_ID['null_character']:
+                ids.append(val)
+        else:
+            if val not in (None, VALID_ID['null_character']):
+                ids.append(val)
+
             if len(str(val)) is not VALID_ID['length']:
                 warnings['invalid_id_length_warning']['value'] = True
+
     return sorted(ids)
 
 
@@ -213,7 +223,7 @@ def get_worksheet_lists_with_ids(original_form, new_form):
 
     ws_lists_with_ids = list(set(original_form_list) & set(new_form_list))
 
-    validate(validation_type='id', data=ws_lists_with_ids)
+    validate(validation_type='id', _data=ws_lists_with_ids)
 
     return ws_lists_with_ids
 
@@ -284,7 +294,8 @@ def to_json(args):
 
 
 # To CSV
-HEADER = ['worksheet', 'id', 'field', 'old', 'new', 'different?']
+HEADER = ['worksheet', 'id', 'current_name', 'current_lab', 'field', 'old',
+          'new', 'different?']
 
 
 def _csv_compare_by_worksheet(report_schema, ws_name, old_fields, new_fields, 
@@ -300,9 +311,8 @@ def _csv_compare_by_worksheet(report_schema, ws_name, old_fields, new_fields,
 
     old_ws_array, new_ws_array = pd.DataFrame(old_ws), pd.DataFrame(new_ws)
 
-    # print(old_ws_array)
-
     for _id in common_ids:
+
         for field in all_fields:
 
             row = [col_name for col_name in report_schema]
@@ -312,16 +322,16 @@ def _csv_compare_by_worksheet(report_schema, ws_name, old_fields, new_fields,
             # TODO: Intersect instead of set() in all_fields arround line ~400
             # TODO: On top of returning "N/A", also print out a report/warning
             #  for fields that are in one file but not in the other.
-
-            # try:
             old_record = old_ws_array.loc[
                 old_ws_array[old_field_indexes['id']] == str(_id)]
             old_row_num = old_record.index[0]
             if field in old_field_indexes:
                 old_field_val = \
                     old_record[old_field_indexes[field]].get(old_row_num)
+                old_field_val = \
+                    old_field_val.replace('None', MISSING_VAL_TOKEN)
             else:
-                old_field_val = 'N/A'
+                old_field_val = MISSING_COL_TOKEN
 
             new_record = new_ws_array.loc[
                 new_ws_array[new_field_indexes['id']] == str(_id)]
@@ -329,47 +339,39 @@ def _csv_compare_by_worksheet(report_schema, ws_name, old_fields, new_fields,
             if field in new_field_indexes:
                 new_field_val = \
                     new_record[new_field_indexes[field]].get(new_row_num)
+                new_field_val = \
+                    new_field_val.replace('None', MISSING_VAL_TOKEN)
             else:
-                new_field_val = 'N/A'
-            # except:
-            #     from pdb import set_trace
-            #     set_trace()
-            # old = row[report_indexes['old']] = ''
-            # new = row[report_indexes['new']] = ''
+                new_field_val = MISSING_COL_TOKEN
 
+            # TODO: Change "label::English" to default language.
             row[report_indexes['worksheet']] = ws_name
             row[report_indexes['id']] = str(_id)
+            row[report_indexes['current_name']] = \
+                new_record[new_field_indexes['name']].get(new_row_num)
+            row[report_indexes['current_lab']] = \
+                new_record[new_field_indexes['label::English']]\
+                .get(new_row_num)
             row[report_indexes['field']] = field
             row[report_indexes['old']] = \
-                old = old_field_val if old_field_val else ''
+                old = old_field_val if old_field_val else MISSING_VAL_TOKEN
             row[report_indexes['new']] = \
-                new = new_field_val if new_field_val else ''
-            row[report_indexes['different?']] = str(old == new)
+                new = new_field_val if new_field_val else MISSING_VAL_TOKEN
+            row[report_indexes['different?']] = \
+                str(False) if old in EMPTY_TOKENS and new in EMPTY_TOKENS \
+                else str(old != new)
 
             ws_data.append(row)
 
-    # headerless_ws_data = ws_data.pop(0)
-    # return headerless_ws_data
-    # return []
-
     return ws_data
-
-    # Debugging
-    # from sys import stderr
-    # print([cell.value for cell in old_ws[0] if cell.value is not None],
-    #       file = stderr)
-    # return ''
-    # Debugging
 
 
 def _2d_arr_to_csv(_2d_array):
     """2d array to csv."""
-    csv_str = ''
-    for row in _2d_array:
-        temp_row = ''
-        for val in row:
-            temp_row += val + ','
-        csv_str += temp_row + '\n'
+    df = pd.DataFrame(_2d_array[1:], columns=_2d_array[0])
+    csv_str_io = StringIO()
+    df.to_csv(csv_str_io)
+    csv_str = csv_str_io.getvalue()
     return csv_str
 
 
@@ -406,6 +408,7 @@ def to_csv(args):
         old_ws, new_ws = get_worksheets_by_name(ws_name=ws,
                                                 original_form=original_form,
                                                 new_form=new_form)
+
         common_ids = intersect(get_ws_ids(old_ws), get_ws_ids(new_ws))
         old_fields = [cell.value or None for cell in old_ws[0]]
         new_fields = [cell.value or None for cell in new_ws[0]]
@@ -422,7 +425,6 @@ def to_csv(args):
                                             old_ws=old_ws,
                                             new_ws=new_ws)
 
-    # report = [['1', '2'], ['3', '4']]
     result = _2d_arr_to_csv(report)
 
     return result
@@ -433,7 +435,8 @@ P_SH = CONFIG['output']['state_history']
 P_WRN = CONFIG['output']['warnings']
 VALID_ID = CONFIG['validation']['id']
 VALID_ID_MSG = '  * Type: {}\n  * Length: {}\n  * Null character: {}'\
-    .format(VALID_ID['type'], VALID_ID['length'], VALID_ID['null_character'])
+    .format(VALID_ID['type'] if 'type' in VALID_ID else 'Any',
+            VALID_ID['length'], VALID_ID['null_character'])
 warnings = {  # pylint: disable=invalid-name
     'invalid_id': {
         'value': False,
@@ -503,5 +506,8 @@ def log():
 
 
 if __name__ == '__main__':
+    # try:
     run()
     log()
+    # except:
+    #     from pdb import set_trace; set_trace()
