@@ -4,8 +4,9 @@
 import pandas as pd
 from sys import stderr, stdout
 from copy import copy
-from pmix.viffer.config import DIFFER_BY_ID_CONFIG as CONFIG, \
-    MISSING_COL_TOKEN, MISSING_VAL_TOKEN, EMPTY_TOKENS
+from pmix.viffer.config import CONFIG as CONFIG, MISSING_RECORD_TOKEN, \
+    MISSING_COL_TOKEN, MISSING_VAL_TOKEN, EMPTY_TOKENS, SHOW_UNCHANGED, \
+    MAKE_FAUX_IDS
 from pmix.viffer.interfaces.cli import cli
 from pmix.viffer.definitions.constants import RELEVANT_WORKSHEETS
 from pmix.viffer.definitions.errors import VifferError
@@ -57,8 +58,18 @@ def to_csv(args):
                                                 original_form=original_form,
                                                 new_form=new_form)
 
-        # TODO Show all ids, not just common
-        common_ids = intersect(get_ws_ids(old_ws), get_ws_ids(new_ws))  # -> 3
+        # -> 2.5
+        if MAKE_FAUX_IDS:
+            old_ws, new_ws = make_faux_ids(old_ws), make_faux_ids(new_ws)
+
+        old_ids, new_ids = get_ws_ids(old_ws), get_ws_ids(new_ws)  # -> 3
+
+        id_list = []
+        if CONFIG['reporting']['which_ids'] == 'all':
+            id_list = sorted(set(old_ids + new_ids))
+        elif CONFIG['reporting']['which_ids'] == 'shared':
+            id_list = sorted(intersect(old_ids, new_ids))
+
         old_fields = [cell.value or None for cell in old_ws[0]]
         new_fields = [cell.value or None for cell in new_ws[0]]
         all_fields = [field for field in set(old_fields + new_fields) if field
@@ -72,10 +83,13 @@ def to_csv(args):
                                        old_fields=old_fields,
                                        new_fields=new_fields,
                                        all_fields=all_fields,
-                                       common_ids=common_ids,
+                                       id_list=id_list,
                                        old_ws=old_ws,
                                        new_ws=new_ws)
 
+    if not SHOW_UNCHANGED:  # Delete 'different?' row.
+        for row in report:
+            del row[-1]
     result = two_dim_arr_to_csv(report)
 
     return result
@@ -119,6 +133,22 @@ def get_worksheets_by_name(ws_name, original_form, new_form):  # 2
     return original_form_ws, new_form_ws
 
 
+def make_faux_ids(ws):  # 2.5
+    """Mkae feaux ids."""
+    id_index = ws.header.index('id')
+    for row in ws.data[1:]:
+        if not row[id_index].value:
+            if ws.name == 'survey':
+                row[id_index].value = str(row[ws.header.index('name')].value)
+            elif ws.name == 'choices':
+                row[id_index].value = \
+                    str(row[ws.header.index('list_name')].value) + ' ' \
+                    + str(row[ws.header.index('name')].value)
+            else:
+                raise VifferError('Unhandled worksheet: {}'.format(ws.name))
+    return ws
+
+
 def get_ws_ids(ws):  # 3
     """Get all component IDs in worksheet.
 
@@ -144,7 +174,7 @@ def get_ws_ids(ws):  # 3
             if len(str(val)) is not VALID_ID['length']:
                 warnings['invalid_id_length_warning']['value'] = True
 
-    return sorted(ids)
+    return sorted([str(_id) for _id in ids])
 
 
 def formatted_ws_data(ws):  # 4
@@ -157,7 +187,7 @@ def formatted_ws_data(ws):  # 4
 
 
 def compare_by_worksheet(report_schema, ws_name, old_fields, new_fields,
-                         all_fields, common_ids, old_ws, new_ws):  # 5
+                         all_fields, id_list, old_ws, new_ws):  # 5
     """Compare changes by worksheet."""
     ws_data = []
     report_indexes = \
@@ -169,7 +199,7 @@ def compare_by_worksheet(report_schema, ws_name, old_fields, new_fields,
 
     old_ws_array, new_ws_array = pd.DataFrame(old_ws), pd.DataFrame(new_ws)
 
-    for _id in common_ids:
+    for _id in id_list:
 
         for field in all_fields:
 
@@ -177,49 +207,68 @@ def compare_by_worksheet(report_schema, ws_name, old_fields, new_fields,
 
             # TODO: Make a config, and set it to ignore by default rows that
             # have not changed.
-            # TODO: Intersect instead of set() in all_fields arround line ~400
+            # TODO: Intersect instead of set() in all_fields ?
             # TODO: On top of returning "N/A", also print out a report/warning
             #  for fields that are in one file but not in the other.
             old_record = old_ws_array.loc[
                 old_ws_array[old_field_indexes['id']] == str(_id)]
-            old_row_num = old_record.index[0]
-            if field in old_field_indexes:
-                old_field_val = \
-                    old_record[old_field_indexes[field]].get(old_row_num)
-                old_field_val = \
-                    old_field_val.replace('None', MISSING_VAL_TOKEN)
-            else:
-                old_field_val = MISSING_COL_TOKEN
+
+            # TODO: Bug. Somewhere below here, issue is occurring where after
+            # missing 15002, 15003 which is in common shows "N/A" as original
+            # value for all fields.
+
+            try:
+                old_row_num = old_record.index[0]
+                if field in old_field_indexes:
+                    old_field_val = \
+                        old_record[old_field_indexes[field]].get(old_row_num)
+                    # If no value
+                    old_field_val = \
+                        old_field_val.replace('None', MISSING_VAL_TOKEN)
+                else:  # If column doesn't exist
+                    old_field_val = MISSING_COL_TOKEN
+            except IndexError:  # If id not in worksheet
+                old_field_val = MISSING_RECORD_TOKEN
 
             new_record = new_ws_array.loc[
                 new_ws_array[new_field_indexes['id']] == str(_id)]
-            new_row_num = new_record.index[0]
-            if field in new_field_indexes:
-                new_field_val = \
-                    new_record[new_field_indexes[field]].get(new_row_num)
-                new_field_val = \
-                    new_field_val.replace('None', MISSING_VAL_TOKEN)
-            else:
-                new_field_val = MISSING_COL_TOKEN
+
+            try:
+                new_row_num = new_record.index[0]
+                if field in new_field_indexes:
+                    new_field_val = \
+                        new_record[new_field_indexes[field]].get(new_row_num)
+                    # If no value
+                    new_field_val = \
+                        new_field_val.replace('None', MISSING_VAL_TOKEN)
+                else:  # If column doesn't exist
+                    new_field_val = MISSING_COL_TOKEN
+            except IndexError:  # If id not in worksheet
+                new_row_num, new_field_val = None, MISSING_RECORD_TOKEN
 
             # TODO: Change "label::English" to default language.
             row[report_indexes['worksheet']] = ws_name
             row[report_indexes['id']] = str(_id)
             row[report_indexes['current_name']] = \
-                new_record[new_field_indexes['name']].get(new_row_num)
+                new_record[new_field_indexes['name']] \
+                .get(new_row_num) if new_row_num is not None \
+                else MISSING_RECORD_TOKEN
             row[report_indexes['current_lab']] = \
-                new_record[new_field_indexes['label::English']]\
-                .get(new_row_num)
+                new_record[new_field_indexes['label::English']] \
+                .get(new_row_num) if new_row_num is not None \
+                else MISSING_RECORD_TOKEN
             row[report_indexes['field']] = field
             row[report_indexes['old']] = \
                 old = old_field_val if old_field_val else MISSING_VAL_TOKEN
             row[report_indexes['new']] = \
                 new = new_field_val if new_field_val else MISSING_VAL_TOKEN
-            row[report_indexes['different?']] = \
+            row[report_indexes['different?']] = is_diff = \
                 str(False) if old in EMPTY_TOKENS and new in EMPTY_TOKENS \
                 else str(old != new)
 
-            ws_data.append(row)
+            if is_diff == str(True) \
+                    or is_diff == str(False) and SHOW_UNCHANGED:
+                ws_data.append(row)
 
     return ws_data
 
