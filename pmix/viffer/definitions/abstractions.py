@@ -66,3 +66,7 @@ def pruned(dictionary):
 def prune_by_n_required_children(dictionary, n=1):
     """Return with only key value pairs that meet required n children."""
     return {key: val for key, val in dictionary.items() if len(val) >= n}
+
+def prune_rows_by_missing_field_value(ws, index):
+    """Remove rows without any id."""
+    return [row for row in ws if row[index] is not None]

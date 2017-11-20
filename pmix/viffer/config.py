@@ -3,10 +3,6 @@
 
 DIFFER_BY_ID_CONFIG = {
     'output': {
-        'state_history': {
-            'stream': 'stderr',
-            'value': False
-        },
         'warnings': {
             'stream': 'stderr',
             'value': False

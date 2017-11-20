@@ -7,10 +7,7 @@ import re
 from os import path as os_path, listdir
 
 # from pmix.workbook import Workbook
-from pmix.xlsform import Xlsform
-from pmix.viffer.__main__ import render_form_objects
-from pmix.viffer.definitions.errors import VifferError
-from pmix.viffer.diff_by_id import to_csv
+from pmix.viffer.__main__ import to_csv
 
 TEST_FORMS_DIRECTORY = os_path.dirname(os_path.realpath(__file__))
 
@@ -66,34 +63,6 @@ class VifferMainTest(unittest.TestCase, VifferTest):
         super(VifferMainTest, self).__init__(*args, **kwargs)
         VifferTest.__init__(self)
 
-    def test_render_form_objects(self):
-        """Unit tests for the viffer.__main__.run()."""
-
-        def test_viffer_error():
-            """Test render form objects args xlsfiles error raised.
-
-            Error is raised when incorrect number of files is passed.
-            """
-            cases = [
-                ['Viffer-FQ-v1.xlsx'],
-                ['Viffer-FQ-v1.xlsx', 'Viffer-FQ-v3.xlsx', 'Viffer-FQ-v3.xlsx']
-            ]
-            for case in cases:
-                args = {'xlsxfiles': case}
-                self.assertRaises(VifferError, render_form_objects, args)
-
-        def test_return():
-            """Test render form objects returns Workbook object.
-
-            ODK form objects correctly created from ODK Xlsforms.
-            """
-            for form in self.test_ref_forms:  # TODO: Use the __main__.py
-                # function, not the instance attribute.
-                file = TEST_FORMS_DIRECTORY + '/' + form
-                self.assertTrue(isinstance(Xlsform(file), Xlsform))
-
-        test_viffer_error()
-        test_return()
 
     def test_csv_report_accuracy(self):
         """Test that output CSV file is reporting correctly."""
