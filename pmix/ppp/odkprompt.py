@@ -1,11 +1,7 @@
 """Module for the OdkPrompt class."""
 import textwrap
-<<<<<<< HEAD
-
-=======
 from pmix.ppp.constants import MEDIA_FIELDS, LANGUAGE_DEPENDENT_FIELDS, \
     TRUNCATABLE_FIELDS
->>>>>>> Merged with updated PPP branch.
 from pmix.ppp.config import TEMPLATE_ENV
 from pmix.ppp.definitions.constants import MEDIA_FIELDS, TRUNCATABLE_FIELDS, \
     LANGUAGE_DEPENDENT_FIELDS, PRESETS, IGNORE_RELEVANT_TOKEN
@@ -30,10 +26,6 @@ class OdkPrompt:
         response_types (tuple): Prompt types which can accept data and do not
             include a list of choices.
         non_response_types (tuple): Prompt types which do not accept data.
-<<<<<<< HEAD
-
-=======
->>>>>>> Merged with updated PPP branch.
     """
 
     select_types = (
@@ -153,11 +145,7 @@ class OdkPrompt:
         new_row = row.copy()
         for key, _ in new_row.items():
             for field in MEDIA_FIELDS:
-<<<<<<< HEAD
-                if key.startswith(field):
-=======
                 if key.startswith(field) and len(val) > 0:
->>>>>>> Merged with updated PPP branch.
                     if field not in row:
                         fields_to_add.append(field)
                     if field.startswith(prefix):
@@ -220,22 +208,12 @@ class OdkPrompt:
             dict: Reformatted representation.
         """
         arbitrary_media_prefix = 'media::'
-<<<<<<< HEAD
-        new_row = \
-            self.create_additional_media_fields(row, arbitrary_media_prefix)
-        for key, val in new_row.items():
-            for field in MEDIA_FIELDS:
-                if key.startswith(field) and val:
-                    formatted_media_label = val
-                    if val[0] != '[' and val[-1] != ']':
-=======
         new_row = self.create_additional_media_fields(row,
                                                       arbitrary_media_prefix)
         for key, val in new_row.items():
             for field in MEDIA_FIELDS:
                 if key.startswith(field) and len(val) > 0:
                     if val[0] is not '[' and val[-1] is not ']':
->>>>>>> Merged with updated PPP branch.
                         formatted_media_label = '[' + val + ']'
                     row[field] = formatted_media_label
                     row[key] = formatted_media_label
