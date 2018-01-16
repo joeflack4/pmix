@@ -13,7 +13,7 @@ def cli():
     parser.add_argument('-f', '--format', choices=('csv', 'json'), nargs='?',
                         const='csv', default='csv', help=format_help)
 
-    file_help = 'Paths to two XLSForms in the order of older to newer.'
+    file_help = 'Paths to two XLSForms, in the order of older to newer.'
     parser.add_argument('files', nargs='+', help=file_help)
 
     args = parser.parse_args()

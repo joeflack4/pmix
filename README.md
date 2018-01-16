@@ -160,6 +160,30 @@ PPP also exists on the web!
 > `python -m pmix.ppp myXlsForm1.xlsx myXlsForm2.xlsx -l Luganda Lusoga English -f doc pdf -p minimal full`
 > *Saves a document for every combination of forms and options passed, in this case **2** input files \* **3** languages \* **2** file formats \* **2** detail formats, or **24** output files*
 
+##################################
+
+## Viffer
+#### About Viffer
+Viffer is a tool that provides reports on the differences between two XlsForms. Viffer stands for "Version Diff'er".
+
+#### CLI How-to
+##### Positional Arguments
+| Argument | Description |
+|:---------|:------------|
+| files    | Paths to two XLSForms in the order of older to newer. |
+
+##### Options
+| Short Flag | Long Flag | Description |
+|:-----------|:----------|:------------|
+| -h | --help | Show this help message and exit. |
+| -f | --format | The format to generate. Default is \'csv\'. Option usage: `-f {csv,json}`. |
+
+##### Example Usage
+Generate a Viffer report.
+`python -m  pmix.viffer old_form.xlsx new_form.xlsx`
+
+##################################
+
 ## Workbook
 
 There following features are offered:
