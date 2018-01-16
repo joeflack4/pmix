@@ -34,6 +34,7 @@ setup(
     install_requires=[
         'XlsxWriter>=0.7.0',
         'xlrd>=0.9.3',
-        'Jinja2>=2.9.6'
+        'Jinja2>=2.9.6',
+        'pandas>=0.22.0'
     ],
 )
