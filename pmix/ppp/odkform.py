@@ -14,7 +14,6 @@ from pmix.xlsform import Xlsform
 
 class OdkForm:
     """Class to represent an entire XLSForm.
-
     Attributes:
         settings (dict): A dictionary representation of the original 'settings'
             worksheet of an ODK XLSForm.
@@ -26,18 +25,14 @@ class OdkForm:
             converted ODK forms.
         questionnaire (list): An ordered representation of the ODK form,
             comprised of OdkPrompt, OdkGroup, OdkRepeat, and OdkTable objects.
-
     """
 
     def __init__(self, wb):
         """Initialize the OdkForm.
-
         Create an instance of an ODK form, including survey representation,
         choice options, settings, and metadata.
-
         Args:
             wb (Xlsform): A Xlsform object meeting XLSForm specification.
-
         Raises:
             OdkformError: No ODK form is supplied.
         """
@@ -76,11 +71,9 @@ class OdkForm:
     @classmethod
     def from_file(cls, path):
         """Create Odkform object from file in path.
-
         Args:
             path (str): The path for the source file of the ODK form,
                 typically an '.xlsx' file meeting the XLSForm specification.
-
         Returns:
             Odkform
         """
@@ -90,10 +83,8 @@ class OdkForm:
     @staticmethod
     def get_settings(wb):
         """Get the XLSForm settings as a settings_dict.
-
         Args:
             wb (Xlsform): A workbook object representing ODK form.
-
         Returns:
             dict: Form settings.
         """
@@ -112,15 +103,12 @@ class OdkForm:
     @staticmethod
     def get_choices(wb, ws):
         """Extract choices from an XLSForm.
-
         Args:
             wb (Xlsform): A Xlsform object representing ODK form.
             ws (Worksheet): One of 'choices' or 'external_choices'.
-
         Returns:
             dict: A dictionary of choice list names with list of choices
                 options for each list.
-
         Raises:
             OdkformError: Catches instances where list specified in the
                 'survey' worksheet, but the list does not appear in the
@@ -153,13 +141,11 @@ class OdkForm:
     @staticmethod
     def get_title(settings, wb, lang=None):
         """Get questionnaire title.
-
         Args:
         settings (dict): A dictionary represetnation of the original 'settings'
             worksheet of an ODK XLSForm.
         wb (Workbook): A Workbook object representing an XLSForm.
         lang (str): The requested render lagnuage of the form.
-
         Returns:
             str: The title.
         """
@@ -169,10 +155,8 @@ class OdkForm:
 
     def to_text(self, lang=None):
         """Get the text representation of an entire XLSForm.
-
         Args:
             lang (str): The language.
-
         Returns:
             str: The full string of the XLSForm, ready to print or save.
         """
@@ -212,11 +196,9 @@ class OdkForm:
 
     def to_json(self, pretty=False):
         """Get the JSON representation of raw ODK form.
-
         Args:
             pretty (bool): Activates prettification, involving insertion of
                 several kinds of whitespace for readability.
-
         Returns:
             json: A full JSON representation of the XLSForm.
         """
@@ -234,14 +216,12 @@ class OdkForm:
 
     def to_html(self, lang=None, **kwargs):
         """Get the JSON representation of an entire XLSForm.
-
         Args:
             lang (str): The language.
             **highlight (bool): For color highlighting of various components
                 of html template.
             **debug (bool): For inclusion of debug information to be printed
                 in the JavaScript console.
-
         Returns:
             str: A full HTML representation of the XLSForm.
         """
@@ -302,22 +282,18 @@ class OdkForm:
     @staticmethod
     def parse_select_type(row, choices, ext_choices):
         """Extract relevant information from a select_* ODK prompt.
-
         Build a dictionary that distills the main details of the row. The
         select type questions can have a token type of 'prompt' or 'table'.
         The prompt type is default, and table type is if the appearance of the
         question has either 'label' or 'list-nolabel'.
-
         Args:
             row (dict): A row as a dictionary. Keys and values are strings.
             choices (dict): A diction   ary with list_names as keys. Represents
                 the choices found in 'choices' tab.
             ext_choices (dict): A dictionary with list_names as keys.
                 Represents choices found in 'external_choices' tab.
-
         Returns:
             A dictionary with the simple information about this prompt.
-
         Raises:
             OdkFormError: If the row is not select_[one|multiple](_external)?
             KeyError: If the select question's choice list is not found.
@@ -356,13 +332,10 @@ class OdkForm:
     @staticmethod
     def parse_group_repeat(row):
         """Extract relevant information about a begin/end group/repeat.
-
         Args:
             row (dict): A row as a dictionary. Keys and values are strings.
-
         Returns:
             A dictionary with the simple information about this prompt.
-
         Raises:
             OdkFormError: If type is not begin/end group/repeat.
         """
@@ -380,13 +353,10 @@ class OdkForm:
     @staticmethod
     def make_simple_prompt(row_type):
         """Extract relevant information from an ODK prompt.
-
         Make the simplest dictionary: token_type is set to 'prompt',
         simple_type is copied from the row type, and choices is set to None.
-
         Args:
             row_type (str): The type of the row.
-
         Returns:
             A dictionary with the simple information about this prompt.
         """
@@ -408,14 +378,12 @@ class OdkForm:
     @staticmethod
     def parse_type(row, choices, ext_choices):
         """Describe the 'type' column of a row XLSForm.
-
         Args:
             row (dict): A row as a dictionary. Keys and values are strings.
             choices (dict): A dictionary with list_names as keys. Represents
                 the choices found in 'choices' tab.
             ext_choices (dict): A dictionary with list_names as keys.
                 Represents choices found in 'external_choices' tab.
-
         Returns:
             dict: simple_row information from parsing.
         """
@@ -437,9 +405,7 @@ class OdkForm:
     @staticmethod
     def convert_survey(wb, choices, ext_choices):
         """Convert rows and strings of a workbook into object components.
-
         Main types are:
-
         - prompt
         - calculate
         - begin group
@@ -448,13 +414,10 @@ class OdkForm:
         - end repeat
         - table
         - context group (group without field-list appearance)
-
         Args:
             wb (Xlsform): A Xlsform object representing an XLSForm.
-
         Returns:
             list: A list of objects representing form components.
-
         Raises:
             OdkformError: Handle several errors, including: mismatched groups
                 or repeat groups, errors when appending to groups or repeat
@@ -514,11 +477,9 @@ class OdkForm:
 
     class ConversionContext:
         """A class to help questionnaire conversion.
-
         This class is the context during questionnaire conversion. It
         remembers state, adds components in the correct order, and enforces
         rules during conversion.
-
         Instance attributes:
             result (list): The list of survey components that is built up
             pending_stack (list): A stack for tracking nested groups and
@@ -535,13 +496,10 @@ class OdkForm:
 
         def add_prompt(self, prompt):
             """Add a prompt to the questionnaire.
-
             If there is an item on the pending stack, it is added there,
             otherwise it is added to the list of components.
-
             Args:
-                prompt (OdkPrompt | OdkCalculate): A prompt to add.
-
+                prompt (OdkPrompt): A prompt to add.
             """
             if self.pending_stack:
                 self.pending_stack[-1].add(prompt)
@@ -556,24 +514,19 @@ class OdkForm:
 
             Args:
                 calculate (OdkCalculate): A calculate to add.
-
             """
             self.add_prompt(calculate)
 
         def add_group(self, group):
             """Add a group to the pending stack.
-
             A group can be added to the pending stack as long as it is empty
             or the last pending stack item is a repeat. This is triggered by a
             'begin group' row with a 'field-list' in the appearance.
-
             Args:
                 group (OdkGroup): The group to add to the pending stack.
-
             Raises:
                 OdkFormError: If the parsing rules are broken based on the
                     current context.
-
             """
             if self.pending_stack:
                 last = self.pending_stack[-1]
@@ -585,27 +538,21 @@ class OdkForm:
 
         def add_context_group(self):
             """Add a context group to the group stack.
-
             Context groups are tracked only to help popping groups correctly
             from the pending stack.
-
             """
             self.group_stack.append(None)
 
         def end_pending_group(self):
             """End a pending group.
-
             A pending group is a group on the pending stack. This is not a
             context group. This function is only called internally in response
             to receiving and dealing with an 'end group' type.
-
             If the pending group is nested in a repeat, then it is added to
             that repeat.
-
             Raises:
                 OdkFormError: If the parsing rules are broken based on the
                     current context.
-
             """
             if self.pending_stack:
                 last_pending = self.pending_stack.pop()
@@ -623,14 +570,11 @@ class OdkForm:
 
         def end_group(self):
             """Finish a group after seeing 'end group' type.
-
             The 'end group' type can finish a field-list group or a context
             group. This function handles the logic for finishing both types.
-
             Raises:
                 OdkFormError: If the parsing rules are broken based on the
                     current context.
-
             """
             if self.group_stack:
                 last_group = self.group_stack.pop()
@@ -642,17 +586,13 @@ class OdkForm:
 
         def add_repeat(self, repeat):
             """Add a repeat to the pending stack.
-
             The pending stack must first be empty because a repeat cannot be
             nested in a group or other repeat.
-
             Args:
                 repeat (OdkRepeat): The repeat to deal with.
-
             Raises:
                 OdkFormError: If the parsing rules are broken based on the
                     current context.
-
             """
             if not self.pending_stack:
                 self.pending_stack.append(repeat)
@@ -662,13 +602,10 @@ class OdkForm:
 
         def end_repeat(self):
             """Finish a repeat in this questionniare.
-
             A repeat can be ended only if it is first on the pending stack.
-
             Raises:
                 OdkFormError: If the parsing rules are broken based on the
                     current context.
-
             """
             if self.pending_stack:
                 last_pending = self.pending_stack.pop()
@@ -683,17 +620,13 @@ class OdkForm:
 
         def add_table(self, prompt):
             """Add a table row to the questionnaire.
-
             The table can only be added if there is a group on the pending
             stack.
-
             Args:
                 prompt (OdkPrompt): The prompt representing the table row.
-
             Raises:
                 OdkFormError: If the parsing rules are broken based on the
                     current context.
-
             """
             if self.pending_stack:
                 last_pending = self.pending_stack[-1]

@@ -11,6 +11,7 @@ dist/
 build
 *.dev
 MANIFEST
+*.py[cod]
 tags
 *.swp
 /*.html

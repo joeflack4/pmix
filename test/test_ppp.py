@@ -330,6 +330,55 @@ def get_test_suite(test_packages):
             suite.addTest(doctest.DocTestSuite(pkg_module))
     return suite
 
+    def test_languages(self):
+        """Language based tests."""
+        def test_get_label_language_list():
+            """Test OdkForm.get_label_language_list()."""
+            test_input = {
+                'audio': {
+                    'has_generic_language_field': True,
+                    'language_list': []
+                },
+                'constraint_message': {
+                    'has_generic_language_field': False,
+                    'language_list': ['Ateso', 'English', 'Luganda',
+                                      'Lugbara', 'Luo', 'Lusoga',
+                                      'Ngakarimojong', 'Runyankole-Rukiga',
+                                      'Runyoro-Rutoro']
+                },
+                'hint': {
+                    'has_generic_language_field': False,
+                    'language_list': ['Ateso', 'English', 'Luganda',
+                                      'Lugbara', 'Luo', 'Lusoga',
+                                      'Ngakarimojong', 'Runyankole-Rukiga',
+                                      'Runyoro-Rutoro']
+                },
+                'image': {
+                    'has_generic_language_field': False,
+                    'language_list': ['Ateso', 'English', 'Luganda',
+                                      'Lugbara', 'Luo', 'Lusoga',
+                                      'Ngakarimojong', 'Runyankole-Rukiga',
+                                      'Runyoro-Rutoro']
+                },
+                'label': {
+                    'has_generic_language_field': False,
+                    'language_list': ['Ateso', 'English', 'Luganda',
+                                      'Lugbara', 'Luo', 'Lusoga',
+                                      'Ngakarimojong', 'Runyankole-Rukiga',
+                                      'Runyoro-Rutoro']
+                },
+                'media::video': {
+                    'has_generic_language_field': False,
+                    'language_list': ['English']
+                }
+            }
+            expected_output = ['Ateso', 'English', 'Luganda', 'Lugbara', 'Luo',
+                               'Lusoga', 'Ngakarimojong', 'Runyankole-Rukiga',
+                               'Runyoro-Rutoro']
+            self.assertTrue(
+                OdkForm.get_label_language_list(test_input) == expected_output)
+        test_get_label_language_list()
+
 
 if __name__ == '__main__':
     PARAMS = get_args()

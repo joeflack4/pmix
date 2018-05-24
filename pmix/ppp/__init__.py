@@ -4,14 +4,11 @@
 About PPP
 PPP is a tool that converts ODK XlsForm specification .xlsx Excel files to more
 human-readable, printable formats, commonly called "paper questionnaires".
-
 Officially, PPP stands for "Pretty PDF Printer", but other formats are
 supported (see: the `--format` option described in the "CLI How-to").
-
 PPP Web Application
 - Convert XlsForms online: http://ppp.pma2020.org
 - Github: https://github.com/pma-2020/ppp-web
-
 Functions
 - run: Common executional entry point from interfaces.
 """
@@ -32,7 +29,6 @@ from pmix.ppp.odkform import OdkForm
 
 def convert_file(in_file, language=None, outpath=None, **kwargs):
     """Run ODK form conversion.
-
     Args:
         in_file (str): Path to load source file.
         language (str or None): Language to render form.
@@ -40,7 +36,6 @@ def convert_file(in_file, language=None, outpath=None, **kwargs):
         **format (str): File format to be output.
         **debug (bool): Debugging on or off.
         **highlight (bool): Highlighting on or off.
-
     Raises:
         InvalidLanguageException: Language related.
         OdkChoicesError: Choice or choice list related.

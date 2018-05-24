@@ -1,4 +1,4 @@
-"""Module for the OdkTable class."""
+""""Module for the OdkTable class."""
 from pmix.ppp.config import TEMPLATE_ENV
 from pmix.ppp.definitions.utils import exclusion
 # from pmix.ppp.definitions.error import OdkformError
@@ -6,7 +6,6 @@ from pmix.ppp.definitions.utils import exclusion
 
 class OdkTable:
     """Class to represent a single ODK table from an XLSForm.
-
     Attributes:
         data (list): List of 1 OdkPrompt header and 1+ OdkPrompt rows.
         header (OdkPrompt): OdkPrompt representing table header.
@@ -28,7 +27,6 @@ class OdkTable:
 
     def add(self, odkprompt):
         """Add a row of data from XLSForm.
-
         Args:
             odkprompt (OdkPrompt): ODK table row.
         """
@@ -37,12 +35,10 @@ class OdkTable:
     @staticmethod
     def format_row(prompt, lang, **kwargs):
         """Format rows row based on HTML options determined by kwargs.
-
         Args:
             prompt (OdkPrompt): The row.
             lang (str): The language.
             **kwargs: Keyword arguments.
-
         Returns:
             dict: Reformatted row.
         """
@@ -52,7 +48,6 @@ class OdkTable:
 
     def set_header_and_contents(self, lang, **kwargs):
         """Set header and contents of table.
-
         Args:
             lang (str): The language.
             **kwargs: Keyword arguments
@@ -116,12 +111,10 @@ class OdkTable:
 
     def to_html(self, lang, highlighting, **kwargs):
         """Convert to html.
-
         Args:
             lang (place): The language.
             highlighting (bool): Displays highlighted sub-sections if True.
             **kwargs: Keyword arguments.
-
         Returns:
             str: A rendered html template.
         """
