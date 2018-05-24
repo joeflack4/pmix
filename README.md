@@ -160,29 +160,6 @@ PPP also exists on the web!
 > `python -m pmix.ppp myXlsForm1.xlsx myXlsForm2.xlsx -l Luganda Lusoga English -f doc pdf -p minimal full`
 > *Saves a document for every combination of forms and options passed, in this case **2** input files \* **3** languages \* **2** file formats \* **2** detail formats, or **24** output files*
 
-##################################
-
-## Viffer
-#### About Viffer
-Viffer is a tool that provides reports on the differences between two XlsForms. Viffer stands for "Version Diff'er".
-
-#### CLI How-to
-##### Positional Arguments
-| Argument | Description |
-|:---------|:------------|
-| files    | Paths to two XLSForms in the order of older to newer. |
-
-##### Options
-| Short Flag | Long Flag | Description |
-|:-----------|:----------|:------------|
-| -h | --help | Show this help message and exit. |
-| -f | --format | The format to generate. Default is \'csv\'. Option usage: `-f {csv,json}`. |
-
-##### Example Usage
-Generate a Viffer report.
-`python -m  pmix.viffer old_form.xlsx new_form.xlsx`
-
-##################################
 
 ## Workbook
 
@@ -225,12 +202,41 @@ with highlighting to show differences.
 | -s | --simple | Do a simple diff instead of the default ODK diff. |
 | -e | --excel | Path to write Excel output. If flag is given with no argument then default out path is used. If flag is omitted, then write text output to STDOUT.|
 
+![#ff0000](https://placehold.it/15/ff0000/000000?text=+) *Red* -- Rows and columns that are duplicate so are not compared  
+![#ffa500](https://placehold.it/15/ffa500/000000?text=+) *Orange* -- Rows and columns that are in the marked up file, but not in the other  
+![#ffff00](https://placehold.it/15/ffff00/000000?text=+) *Yellow* -- Cells that are different between the the two files  
+![#00ff00](https://placehold.it/15/00ff00/000000?text=+) *Green* -- Rows that are in a changed order  
+
+![XlsDiff](docs/xlsdiff_output.png)
+
+##### Options
+| Short Flag | Long Flag | Description |
+|:-----------|:----------|:------------|
+| -h | --help | Show this help message and exit. |
+| -r | --reverse | Reverse the order of the base file and the new file for processing. |
+| -s | --simple | Do a simple diff instead of the default ODK diff. |
+| -e | --excel | Path to write Excel output. If flag is given with no argument then default out path is used. If flag is omitted, then write text output to STDOUT.|
+
 ## Viffer
 Viffer is a tool that provides a tabulated report on the differences between two XlsForms. Viffer stands for "Version Diff'er".
 
-![XlsDiff](docs/viffer_output_small.png)
+It also has the option to run **XlsDiff** at the same time, and does this by default.
 
-This tool is currently under development under another fork of pmix. If interested in using it, please see: https://github.com/joeflack4/pmix/tree/feature_viffer#viffer
+![XlsDiff](docs/viffer_output.png)
+
+#### CLI How-to
+##### Positional Arguments
+| Argument | Description |
+|:---------|:------------|
+| files    | Paths to two XLSForms in the order of older to newer. |
+
+##### Options
+| Short Flag | Long Flag | Description |
+|:-----------|:----------|:------------|
+| -h | --help | Show this help message and exit. |
+| -f | --format | The format to generate. Default is \'csv\'. Option usage: `-f {csv,json}`. |
+| -s | --single-report | Creates only a single, tabulated Viffer report, without the XlsDiff report file. |
+| -S | --stdout | Prints the result of the report to Stdout, rather than saving a file. |
 
 ##### Example Usage
 Generate a Viffer report.

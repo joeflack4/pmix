@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Diff by ID - Report on differences between XLSForms by ID comparison."""
+from subprocess import call
 import pandas as pd
 from sys import stderr, stdout
 from copy import copy
+
 from pmix.viffer.config import CONFIG as CONFIG, MISSING_RECORD_TOKEN, \
     MISSING_COL_TOKEN, MISSING_VAL_TOKEN, EMPTY_TOKENS, SHOW_UNCHANGED, \
     MAKE_FAUX_IDS
@@ -286,6 +288,21 @@ def print_warnings(toggle=True, output_stream='stdout'):
         print('\n'.join(warnings_to_print), file=stream)
 
 
+# TODO: Write from 2d array first. Less error prone.
+def save_csv(csv_data, args):
+    """Save CSV."""
+    # import csv
+    # csv_array = csv_data.split('\n')
+    # csv_array_2d = [row.split(',') for row in csv_array]
+    # with open(args.files[1] + "-viffer.csv", 'w') as out:
+    #     wr = csv.writer(out, dialect='excel')
+    #     wr.writerows(csv_array_2d)
+
+    f = open(args.files[1].replace('.xlsx', '') + "-viffer.csv", 'w')
+    f.write(csv_data)
+    f.close()
+
+
 def log():
     """Log output."""
     print_warnings(output_stream=PRINT_WARNINGS['stream'],
@@ -295,8 +312,23 @@ def log():
 def run():
     """Run module."""
     try:
-        result = to_csv(cli())
-        print(result)
+        args = cli()
+        result = to_csv(args)
+
+        if args.stdout:
+            print(result)
+        else:
+            save_csv(csv_data=result, args=args)
+
+        if not args.simple_report:
+            command = ['python', "-m", 'pmix.xlsdiff', args.files[0],
+                       args.files[1], '-e']
+            try:
+                call(command)
+            except FileNotFoundError:
+                command[0] = 'python3'
+                call(command)
+
     except VifferError as err:
         print('VifferError: ' + str(err))
 

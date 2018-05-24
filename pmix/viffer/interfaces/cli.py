@@ -13,6 +13,16 @@ def cli():
     parser.add_argument('-f', '--format', choices=('csv', 'json'), nargs='?',
                         const='csv', default='csv', help=format_help)
 
+    single_report_help = 'Creates only a single, tabulated Viffer report, ' \
+                         'without the XlsDiff report file.'
+    parser.add_argument('-s', '--simple-report', action='store_true',
+                        help=single_report_help)
+
+    stdout_help = 'Prints the result of the report to Stdout, rather than ' \
+                  'saving a file.'
+    parser.add_argument('-S', '--stdout', action='store_true',
+                        help=stdout_help)
+
     file_help = 'Paths to two XLSForms, in the order of older to newer.'
     parser.add_argument('files', nargs='+', help=file_help)
 

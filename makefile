@@ -83,16 +83,11 @@ server:
 paper:
 	sh ./scripts/generic_paper_questionnaires.sh
 
-# Scripts
-paper:
-	sh ./scripts/generic_paper_questionnaires.sh
 
+IN_DIR=test/files/viffer/short/
 OUT_FILE=viffer_test.csv
 test_viffer:
-	python -m pmix.viffer.diff_by_id -f csv test/files/viffer/1.xlsx test/files/viffer/2.xlsx
-#	python -m pmix.viffer.diff_by_id -f csv test/files/viffer/1.xlsx test/files/viffer/2.xlsx > output/${OUT_FILE}
-#	open output/${OUT_FILE}
+	python -m pmix.viffer ${IN_DIR}1.xlsx ${IN_DIR}2.xlsx
 test_viffer_open:
-	python -m pmix.viffer.diff_by_id -f csv test/files/viffer/1.xlsx test/files/viffer/2.xlsx
-	python -m pmix.viffer.diff_by_id -f csv test/files/viffer/1.xlsx test/files/viffer/2.xlsx > output/${OUT_FILE}
+	python -m pmix.viffer ${IN_DIR}1.xlsx ${IN_DIR}2.xlsx > output/${OUT_FILE}
 	open output/${OUT_FILE}
